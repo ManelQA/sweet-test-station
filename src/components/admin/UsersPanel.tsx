@@ -174,6 +174,17 @@ export function UsersPanel({ client }: { client: SupabaseClient<Database> }) {
                             <span>القسم: {className(r.class_id)}</span>
                           </>
                         ) : null}
+                        {r.space === "taleem" ? (
+                          <>
+                            <span>•</span>
+                            <span>
+                              الأقسام:{" "}
+                              {teacherClassIdsOf(r.id).length === 0
+                                ? "—"
+                                : teacherClassIdsOf(r.id).map((id) => className(id)).join("، ")}
+                            </span>
+                          </>
+                        ) : null}
                       </div>
                     </div>
                     <div className="flex gap-2">
