@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { SpaceAuth, SpaceShell } from "@/components/SpaceAuth";
+import { SpaceAuth } from "@/components/SpaceAuth";
+import { TeacherResources } from "@/components/resources/TeacherResources";
 
 export const Route = createFileRoute("/taleem")({
   ssr: false,
@@ -19,24 +20,28 @@ export const Route = createFileRoute("/taleem")({
 function Page() {
   return (
     <SpaceAuth space="taleem">
-      {({ session, signOut }) => (
-        <SpaceShell space="taleem">
-          <div className="text-center">
-            <h1 className="text-2xl font-normal text-foreground">مرحباً أستاذ(ة)</h1>
-            <p className="mt-2 text-sm text-muted-foreground" dir="ltr">
-              {session.user.email}
-            </p>
-            <p className="mt-6 text-sm text-foreground">
-              تمت المصادقة على حسابك. هذه لوحة الأستاذ الخاصة بك.
-            </p>
-            <div className="mt-8 flex justify-end">
+      {({ session, client, signOut }) => (
+        <div className="min-h-screen bg-canvas px-4 py-10">
+          <div className="mx-auto w-full max-w-4xl">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h1 className="text-2xl font-normal text-foreground">مرحباً أستاذ(ة)</h1>
+                <p className="mt-1 text-sm text-muted-foreground" dir="ltr">
+                  {session.user.email}
+                </p>
+              </div>
               <button type="button" onClick={signOut} className="btn-text">
                 تسجيل الخروج
               </button>
             </div>
+
+            <div className="mt-10">
+              <TeacherResources client={client} teacherId={session.user.id} />
+            </div>
           </div>
-        </SpaceShell>
+        </div>
       )}
     </SpaceAuth>
   );
 }
+
