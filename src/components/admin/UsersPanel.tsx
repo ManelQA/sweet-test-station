@@ -15,6 +15,7 @@ export function UsersPanel({ client }: { client: SupabaseClient<Database> }) {
   const [rows, setRows] = useState<ProfileRow[]>([]);
   const [levels, setLevels] = useState<LevelRow[]>([]);
   const [classes, setClasses] = useState<ClassRow[]>([]);
+  const [teacherClasses, setTeacherClasses] = useState<TeacherClassRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
