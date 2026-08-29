@@ -6,6 +6,7 @@ import { SPACE_LABEL, STATUS_LABEL, type SpaceKey } from "@/lib/spaces";
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type LevelRow = Database["public"]["Tables"]["levels"]["Row"];
 type ClassRow = Database["public"]["Tables"]["classes"]["Row"];
+type TeacherClassRow = Database["public"]["Tables"]["teacher_classes"]["Row"];
 
 const SPACES: SpaceKey[] = ["talameed", "taleem", "admin"];
 const STATUSES: Database["public"]["Enums"]["account_status"][] = ["pending", "approved", "rejected"];
@@ -14,6 +15,7 @@ export function UsersPanel({ client }: { client: SupabaseClient<Database> }) {
   const [rows, setRows] = useState<ProfileRow[]>([]);
   const [levels, setLevels] = useState<LevelRow[]>([]);
   const [classes, setClasses] = useState<ClassRow[]>([]);
+  const [teacherClasses, setTeacherClasses] = useState<TeacherClassRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -23,17 +25,20 @@ export function UsersPanel({ client }: { client: SupabaseClient<Database> }) {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: p, error: e1 }, { data: lv, error: e2 }, { data: cl, error: e3 }] = await Promise.all([
-      client.from("profiles").select("*").order("created_at", { ascending: false }),
-      client.from("levels").select("*").order("position", { ascending: true }),
-      client.from("classes").select("*").order("name", { ascending: true }),
-    ]);
-    if (e1 || e2 || e3) setError("تعذّر تحميل المستخدمين. تأكد من صلاحيات المشرف العام.");
+    const [{ data: p, error: e1 }, { data: lv, error: e2 }, { data: cl, error: e3 }, { data: tc, error: e4 }] =
+      await Promise.all([
+        client.from("profiles").select("*").order("created_at", { ascending: false }),
+        client.from("levels").select("*").order("position", { ascending: true }),
+        client.from("classes").select("*").order("name", { ascending: true }),
+        client.from("teacher_classes").select("*"),
+      ]);
+    if (e1 || e2 || e3 || e4) setError("تعذّر تحميل المستخدمين. تأكد من صلاحيات المشرف العام.");
     else {
       setError(null);
       setRows(p ?? []);
       setLevels(lv ?? []);
       setClasses(cl ?? []);
+      setTeacherClasses(tc ?? []);
     }
     setLoading(false);
   };
@@ -43,14 +48,34 @@ export function UsersPanel({ client }: { client: SupabaseClient<Database> }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client]);
 
-  const save = async (patch: Partial<ProfileRow>) => {
+  const save = async (patch: Partial<ProfileRow>, teacherClassIds?: string[]) => {
     if (!editing) return;
     setBusy(true);
     const { error: err } = await client
       .from("profiles")
       .update({ ...patch, reviewed_at: new Date().toISOString() })
       .eq("id", editing.id);
-    if (err) setError("تعذّر حفظ المستخدم.");
+    let syncErr: unknown = null;
+    if (!err && teacherClassIds) {
+      const current = teacherClasses.filter((t) => t.teacher_id === editing.id).map((t) => t.class_id);
+      const toAdd = teacherClassIds.filter((id) => !current.includes(id));
+      const toRemove = current.filter((id) => !teacherClassIds.includes(id));
+      if (toRemove.length > 0) {
+        const { error: e } = await client
+          .from("teacher_classes")
+          .delete()
+          .eq("teacher_id", editing.id)
+          .in("class_id", toRemove);
+        syncErr = e ?? syncErr;
+      }
+      if (toAdd.length > 0) {
+        const { error: e } = await client
+          .from("teacher_classes")
+          .insert(toAdd.map((class_id) => ({ teacher_id: editing.id, class_id })));
+        syncErr = e ?? syncErr;
+      }
+    }
+    if (err || syncErr) setError("تعذّر حفظ المستخدم.");
     else {
       setError(null);
       setEditing(null);
@@ -68,6 +93,8 @@ export function UsersPanel({ client }: { client: SupabaseClient<Database> }) {
 
   const levelName = (id: string | null) => levels.find((l) => l.id === id)?.name ?? "—";
   const className = (id: string | null) => classes.find((c) => c.id === id)?.name ?? "—";
+  const teacherClassIdsOf = (teacherId: string) =>
+    teacherClasses.filter((t) => t.teacher_id === teacherId).map((t) => t.class_id);
 
   const visible = rows.filter((r) => {
     if (spaceFilter !== "all" && r.space !== spaceFilter) return false;
@@ -122,6 +149,7 @@ export function UsersPanel({ client }: { client: SupabaseClient<Database> }) {
                     row={r}
                     levels={levels}
                     classes={classes}
+                    teacherClassIds={teacherClassIdsOf(r.id)}
                     busy={busy}
                     onCancel={() => setEditing(null)}
                     onSave={save}
@@ -144,6 +172,17 @@ export function UsersPanel({ client }: { client: SupabaseClient<Database> }) {
                             <span>المستوى: {levelName(r.level_id)}</span>
                             <span>•</span>
                             <span>القسم: {className(r.class_id)}</span>
+                          </>
+                        ) : null}
+                        {r.space === "taleem" ? (
+                          <>
+                            <span>•</span>
+                            <span>
+                              الأقسام:{" "}
+                              {teacherClassIdsOf(r.id).length === 0
+                                ? "—"
+                                : teacherClassIdsOf(r.id).map((id) => className(id)).join("، ")}
+                            </span>
                           </>
                         ) : null}
                       </div>
@@ -171,6 +210,7 @@ function UserEditor({
   row,
   levels,
   classes,
+  teacherClassIds,
   busy,
   onCancel,
   onSave,
@@ -178,30 +218,38 @@ function UserEditor({
   row: ProfileRow;
   levels: LevelRow[];
   classes: ClassRow[];
+  teacherClassIds: string[];
   busy: boolean;
   onCancel: () => void;
-  onSave: (patch: Partial<ProfileRow>) => Promise<void>;
+  onSave: (patch: Partial<ProfileRow>, teacherClassIds?: string[]) => Promise<void>;
 }) {
   const [fullName, setFullName] = useState(row.full_name ?? "");
   const [space, setSpace] = useState(row.space);
   const [status, setStatus] = useState(row.status);
   const [levelId, setLevelId] = useState(row.level_id ?? "");
   const [classId, setClassId] = useState(row.class_id ?? "");
+  const [teacherClasses, setTeacherClasses] = useState<string[]>(teacherClassIds);
 
   const filteredClasses = levelId === "" ? classes : classes.filter((c) => c.level_id === levelId);
+
+  const toggleTeacherClass = (id: string) =>
+    setTeacherClasses((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   return (
     <form
       className="grid gap-3 sm:grid-cols-3"
       onSubmit={(e) => {
         e.preventDefault();
-        void onSave({
-          full_name: fullName.trim() === "" ? null : fullName.trim(),
-          space,
-          status,
-          level_id: levelId === "" ? null : levelId,
-          class_id: classId === "" ? null : classId,
-        });
+        void onSave(
+          {
+            full_name: fullName.trim() === "" ? null : fullName.trim(),
+            space,
+            status,
+            level_id: levelId === "" ? null : levelId,
+            class_id: classId === "" ? null : classId,
+          },
+          space === "taleem" ? teacherClasses : [],
+        );
       }}
     >
       <div className="text-xs text-muted-foreground sm:col-span-3" dir="ltr">
