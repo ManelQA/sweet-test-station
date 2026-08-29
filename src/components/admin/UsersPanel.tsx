@@ -6,6 +6,7 @@ import { SPACE_LABEL, STATUS_LABEL, type SpaceKey } from "@/lib/spaces";
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type LevelRow = Database["public"]["Tables"]["levels"]["Row"];
 type ClassRow = Database["public"]["Tables"]["classes"]["Row"];
+type TeacherClassRow = Database["public"]["Tables"]["teacher_classes"]["Row"];
 
 const SPACES: SpaceKey[] = ["talameed", "taleem", "admin"];
 const STATUSES: Database["public"]["Enums"]["account_status"][] = ["pending", "approved", "rejected"];
