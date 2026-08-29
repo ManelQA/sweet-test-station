@@ -25,17 +25,20 @@ export function UsersPanel({ client }: { client: SupabaseClient<Database> }) {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: p, error: e1 }, { data: lv, error: e2 }, { data: cl, error: e3 }] = await Promise.all([
-      client.from("profiles").select("*").order("created_at", { ascending: false }),
-      client.from("levels").select("*").order("position", { ascending: true }),
-      client.from("classes").select("*").order("name", { ascending: true }),
-    ]);
-    if (e1 || e2 || e3) setError("تعذّر تحميل المستخدمين. تأكد من صلاحيات المشرف العام.");
+    const [{ data: p, error: e1 }, { data: lv, error: e2 }, { data: cl, error: e3 }, { data: tc, error: e4 }] =
+      await Promise.all([
+        client.from("profiles").select("*").order("created_at", { ascending: false }),
+        client.from("levels").select("*").order("position", { ascending: true }),
+        client.from("classes").select("*").order("name", { ascending: true }),
+        client.from("teacher_classes").select("*"),
+      ]);
+    if (e1 || e2 || e3 || e4) setError("تعذّر تحميل المستخدمين. تأكد من صلاحيات المشرف العام.");
     else {
       setError(null);
       setRows(p ?? []);
       setLevels(lv ?? []);
       setClasses(cl ?? []);
+      setTeacherClasses(tc ?? []);
     }
     setLoading(false);
   };
