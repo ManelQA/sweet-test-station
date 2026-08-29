@@ -149,6 +149,7 @@ export function UsersPanel({ client }: { client: SupabaseClient<Database> }) {
                     row={r}
                     levels={levels}
                     classes={classes}
+                    teacherClassIds={teacherClassIdsOf(r.id)}
                     busy={busy}
                     onCancel={() => setEditing(null)}
                     onSave={save}
