@@ -48,14 +48,34 @@ export function UsersPanel({ client }: { client: SupabaseClient<Database> }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client]);
 
-  const save = async (patch: Partial<ProfileRow>) => {
+  const save = async (patch: Partial<ProfileRow>, teacherClassIds?: string[]) => {
     if (!editing) return;
     setBusy(true);
     const { error: err } = await client
       .from("profiles")
       .update({ ...patch, reviewed_at: new Date().toISOString() })
       .eq("id", editing.id);
-    if (err) setError("تعذّر حفظ المستخدم.");
+    let syncErr: unknown = null;
+    if (!err && teacherClassIds) {
+      const current = teacherClasses.filter((t) => t.teacher_id === editing.id).map((t) => t.class_id);
+      const toAdd = teacherClassIds.filter((id) => !current.includes(id));
+      const toRemove = current.filter((id) => !teacherClassIds.includes(id));
+      if (toRemove.length > 0) {
+        const { error: e } = await client
+          .from("teacher_classes")
+          .delete()
+          .eq("teacher_id", editing.id)
+          .in("class_id", toRemove);
+        syncErr = e ?? syncErr;
+      }
+      if (toAdd.length > 0) {
+        const { error: e } = await client
+          .from("teacher_classes")
+          .insert(toAdd.map((class_id) => ({ teacher_id: editing.id, class_id })));
+        syncErr = e ?? syncErr;
+      }
+    }
+    if (err || syncErr) setError("تعذّر حفظ المستخدم.");
     else {
       setError(null);
       setEditing(null);
