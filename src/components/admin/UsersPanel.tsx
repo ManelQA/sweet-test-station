@@ -93,6 +93,8 @@ export function UsersPanel({ client }: { client: SupabaseClient<Database> }) {
 
   const levelName = (id: string | null) => levels.find((l) => l.id === id)?.name ?? "—";
   const className = (id: string | null) => classes.find((c) => c.id === id)?.name ?? "—";
+  const teacherClassIdsOf = (teacherId: string) =>
+    teacherClasses.filter((t) => t.teacher_id === teacherId).map((t) => t.class_id);
 
   const visible = rows.filter((r) => {
     if (spaceFilter !== "all" && r.space !== spaceFilter) return false;
