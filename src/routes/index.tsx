@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { getSpaceClient } from "@/lib/spaces";
+import { consumeAuthRedirect, getSpaceClient } from "@/lib/spaces";
 import { translateError } from "@/components/SpaceAuth";
+import { MainNav } from "@/components/MainNav";
+import { PasswordField } from "@/components/PasswordField";
+import { PublicBackdrop } from "@/components/PublicBackdrop";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -25,7 +28,9 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-canvas px-4 py-16">
+    <PublicBackdrop>
+    <main className="flex min-h-screen flex-col items-center justify-center gap-8 px-4 pb-16 pt-24">
+      <MainNav space="talameed" />
       <div className="text-center">
         <div dir="ltr" className="font-wordmark text-5xl tracking-tight">
           <span className="text-brand-green">m</span>
@@ -55,6 +60,7 @@ function Index() {
         </Link>
       </div>
     </main>
+    </PublicBackdrop>
   );
 }
 
@@ -70,9 +76,11 @@ function StudentLogin() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    client.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/talameed" });
-    });
+    consumeAuthRedirect(client).then(() =>
+      client.auth.getSession().then(({ data }) => {
+        if (data.session) navigate({ to: "/talameed" });
+      }),
+    );
   }, [client, navigate]);
 
   const submit = async (e: React.FormEvent) => {
@@ -92,7 +100,7 @@ function StudentLogin() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/talameed`,
+          emailRedirectTo: `${window.location.origin}/`,
           data: { space: "talameed" },
         },
       });
@@ -140,23 +148,16 @@ function StudentLogin() {
         </div>
 
         {mode === "forgot" ? null : (
-          <div className="field">
-            <input
-              id="password"
-              type="password"
-              required
-              dir="ltr"
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder=" "
-              className="field-input"
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
-            />
-            <label htmlFor="password" className="field-label">
-              كلمة المرور
-            </label>
-          </div>
+          <PasswordField
+            id="password"
+            name="password"
+            label="كلمة المرور"
+            required
+            minLength={6}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete={mode === "login" ? "current-password" : "new-password"}
+          />
         )}
 
         {mode === "login" ? (

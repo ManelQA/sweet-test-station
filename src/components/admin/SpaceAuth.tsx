@@ -87,12 +87,17 @@ export function SpaceAuth({ space, children }: Props) {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}${config.path}`,
+          emailRedirectTo: `${window.location.origin}/`,
           data: { space },
         },
       });
       if (err) setError(translateError(err.message));
-      else setMessage("تم إنشاء الحساب. تحقّق من بريدك الإلكتروني لتأكيده، ثم انتظر مصادقة المشرف.");
+      else
+        setMessage(
+          space === "talameed"
+            ? "تم إنشاء الحساب. انتظر مصادقة المشرف على حسابك."
+            : "تم إنشاء الحساب. تحقّق من بريدك الإلكتروني لتأكيده، ثم انتظر مصادقة المشرف.",
+        );
     } else {
       const { error: err } = await client.auth.signInWithPassword({ email, password });
       if (err) setError(translateError(err.message));
@@ -178,7 +183,7 @@ export function SpaceAuth({ space, children }: Props) {
           />
         )}
 
-        {mode === "login" ? (
+        {mode === "login" && space !== "talameed" ? (
           <button
             type="button"
             className="btn-text"
