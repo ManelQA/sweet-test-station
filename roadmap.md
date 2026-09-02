@@ -1,0 +1,1 @@
+- [ ] Merger la branche friendly-admin-sync en local uniquement (aucun push vers GitHub) — bloqué : dépôt privé, pas d'accès
