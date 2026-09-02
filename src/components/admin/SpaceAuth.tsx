@@ -96,7 +96,7 @@ export function SpaceAuth({ space, children }: Props) {
         setMessage(
           space === "talameed"
             ? "تم إنشاء الحساب. انتظر مصادقة المشرف على حسابك."
-            : "تم إنشاء الحساب. تحقّق من بريدك الإلكتروني لتأكيده، ثم انتظر مصادقة المشرف.",
+            : "تم إنشاء الحساب. في انتظار مصادقة المشرف العام.",
         );
     } else {
       const { error: err } = await client.auth.signInWithPassword({ email, password });
