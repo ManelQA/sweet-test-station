@@ -94,9 +94,7 @@ export function SpaceAuth({ space, children }: Props) {
       if (err) setError(translateError(err.message));
       else
         setMessage(
-          space === "talameed"
-            ? "تم إنشاء الحساب. انتظر مصادقة المشرف على حسابك."
-            : "تم إنشاء الحساب. في انتظار مصادقة المشرف العام.",
+            "تم إنشاء الحساب. سيتم تأكيده قريباً بعد مصادقة المشرف."
         );
     } else {
       const { error: err } = await client.auth.signInWithPassword({ email, password });
@@ -183,19 +181,6 @@ export function SpaceAuth({ space, children }: Props) {
           />
         )}
 
-        {mode === "login" && space !== "talameed" ? (
-          <button
-            type="button"
-            className="btn-text"
-            onClick={() => {
-              setMode("forgot");
-              setError(null);
-              setMessage(null);
-            }}
-          >
-            نسيت كلمة المرور؟
-          </button>
-        ) : null}
 
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
         {message ? <p className="text-sm text-success">{message}</p> : null}
